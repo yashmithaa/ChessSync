@@ -68,3 +68,4 @@ public class AuthService {
 }
 // Last modified during: feat: Create Player entity and AuthService foundation [major]
 // Last modified during: feat: Implement EncryptionService singleton for password hashing [singleton]
+// Last modified during: feat: Implement AuthService with Single Responsibility Principle [SRP]
