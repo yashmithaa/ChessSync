@@ -124,3 +124,4 @@ public abstract class Piece implements Serializable, MoveProvider, MoveValidator
      */
 }
 // Last modified during: feat: Create Piece abstract class and chess piece implementations [major]
+// Last modified during: feat: Apply Open/Closed Principle to Piece class hierarchy [OCP]
