@@ -188,15 +188,54 @@ public class Board implements Serializable {
     }
     
 
-    // Clone method for validation purposes (shallow copy of references)
+    // Clone method for validation purposes (DEEP copy to avoid piece state mutation)
     public Board clone() {
         Board clonedBoard = new Board();
+        // Clear the initialized board
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
-                clonedBoard.squares[row][col] = this.squares[row][col];
+                clonedBoard.squares[row][col] = null;
+            }
+        }
+        
+        // Deep copy all pieces
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece piece = this.squares[row][col];
+                if (piece != null) {
+                    Piece clonedPiece = clonePiece(piece);
+                    clonedBoard.squares[row][col] = clonedPiece;
+                }
             }
         }
         return clonedBoard;
+    }
+    
+    /**
+     * Deep copy a piece with all its state
+     */
+    private Piece clonePiece(Piece piece) {
+        Piece newPiece = null;
+        PieceColor color = piece.getColor();
+        int row = piece.getRow();
+        int col = piece.getColumn();
+        
+        // Create a new instance based on piece type
+        switch (piece.getType()) {
+            case PAWN -> newPiece = new Pawn(color, row, col);
+            case ROOK -> newPiece = new Rook(color, row, col);
+            case KNIGHT -> newPiece = new Knight(color, row, col);
+            case BISHOP -> newPiece = new Bishop(color, row, col);
+            case QUEEN -> newPiece = new Queen(color, row, col);
+            case KING -> newPiece = new King(color, row, col);
+        }
+        
+        // Copy the hasMoved state
+        if (newPiece != null && piece.hasMoved()) {
+            newPiece.setHasMoved(true);
+        }
+        
+        return newPiece;
     }
 }
 // Last modified during: feat: Implement Board model with move state management [minor]

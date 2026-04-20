@@ -39,8 +39,8 @@ public class ChessUI extends JFrame {
 
     private void showGameWindow() {
         // You can now add and show the chess board or game UI here
-        BoardPanel boardPanel = new BoardPanel(); // Ensure BoardPanel is implemented
-        add(boardPanel);
+        GamePanel gamePanel = new GamePanel();
+        add(gamePanel);
         pack();
         setVisible(true);
     }

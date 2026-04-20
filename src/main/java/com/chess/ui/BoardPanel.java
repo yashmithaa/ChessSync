@@ -5,12 +5,15 @@ import com.chess.model.Move;
 import com.chess.model.pieces.Piece;
 import com.chess.model.pieces.PieceColor;
 import com.chess.model.pieces.PieceType;
+import com.chess.util.MoveValidator;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class BoardPanel extends JPanel {
     private static final int TILE_SIZE = 80;
@@ -20,11 +23,6 @@ public class BoardPanel extends JPanel {
     private static final Color DARK_TILE = new Color(119, 149, 86);
     private static final Color HIGHLIGHT_COLOR = new Color(0, 255, 0);
     private static final Color SELECTED_COLOR = new Color(255, 255, 0);
-
-    private Board boardModel;
-    private Point selectedTile = null;
-    private List<Move> validMoves = null;
-    private boolean isWhiteTurn = true;
     private static final Font[] PIECE_FONTS = {
         new Font("DejaVu Sans", Font.BOLD, 60),
         new Font("Noto Sans Symbols2", Font.BOLD, 60),
@@ -32,10 +30,18 @@ public class BoardPanel extends JPanel {
         new Font("Serif", Font.BOLD, 60)
     };
 
+    private Board boardModel;
+    private Point selectedTile = null;
+    private List<Move> validMoves = null;
+    private boolean isWhiteTurn = true;
+    private Consumer<Move> moveListener;
+    private List<Move> moveHistory;
+
     public BoardPanel() {
         setPreferredSize(new Dimension(TILE_SIZE * COLS, TILE_SIZE * ROWS));
         setBackground(new Color(40, 40, 45));
         this.boardModel = new Board();
+        this.moveHistory = new ArrayList<>();
         initializeBoard();
         addMouseListener(new MouseAdapter() {
             @Override
@@ -58,27 +64,67 @@ public class BoardPanel extends JPanel {
         }
 
         if (selectedTile == null) {
+            // No piece selected yet - try to select a piece
             Piece piece = boardModel.getPiece(row, col);
             if (piece != null && ((piece.getColor() == PieceColor.WHITE) == isWhiteTurn)) {
                 selectedTile = new Point(col, row);
-                validMoves = piece.getValidMoves(boardModel);
-            }
-        } else {
-            Piece selectedPiece = boardModel.getPiece(selectedTile.y, selectedTile.x);
-            if (selectedPiece != null) {
-                for (Move move : validMoves) {
-                    if (move.getTargetRow() == row && move.getTargetColumn() == col) {
-                        boardModel.executeMove(move);
-                        isWhiteTurn = !isWhiteTurn;
-                        selectedTile = null;
-                        validMoves = null;
-                        repaint();
-                        return;
+                // Get all moves and filter them to only legal moves
+                List<Move> allMoves = piece.getValidMoves(boardModel);
+                validMoves = new ArrayList<>();
+                for (Move move : allMoves) {
+                    if (MoveValidator.isLegalMove(boardModel, move)) {
+                        validMoves.add(move);
                     }
                 }
             }
-            selectedTile = null;
-            validMoves = null;
+        } else {
+            // A piece is already selected - try to move it
+            // Check if clicking on the same piece (deselect it)
+            if (selectedTile.x == col && selectedTile.y == row) {
+                // User clicked the same piece again - deselect it
+                selectedTile = null;
+                validMoves = null;
+            } else {
+                // User clicked a different square - try to move
+                Piece selectedPiece = boardModel.getPiece(selectedTile.y, selectedTile.x);
+                if (selectedPiece != null) {
+                    for (Move move : validMoves) {
+                        if (move.getTargetRow() == row && move.getTargetColumn() == col) {
+                            // This move is guaranteed to be legal since it's in validMoves
+                            boardModel.executeMove(move);
+                            moveHistory.add(move);  // Add to shared history
+                            isWhiteTurn = !isWhiteTurn;
+                            selectedTile = null;
+                            validMoves = null;
+                            
+                            // Notify the move listener
+                            if (moveListener != null) {
+                                moveListener.accept(move);
+                            }
+                            
+                            repaint();
+                            return;
+                        }
+                    }
+                    // Move was not valid - check if clicking on own piece to reselect
+                    Piece targetPiece = boardModel.getPiece(row, col);
+                    if (targetPiece != null && targetPiece.getColor() == selectedPiece.getColor()) {
+                        // Clicked on another piece of the same color - select it instead
+                        selectedTile = new Point(col, row);
+                        List<Move> allMoves = targetPiece.getValidMoves(boardModel);
+                        validMoves = new ArrayList<>();
+                        for (Move move : allMoves) {
+                            if (MoveValidator.isLegalMove(boardModel, move)) {
+                                validMoves.add(move);
+                            }
+                        }
+                    } else {
+                        // Invalid move target - deselect
+                        selectedTile = null;
+                        validMoves = null;
+                    }
+                }
+            }
         }
         repaint();
     }
@@ -228,11 +274,53 @@ public class BoardPanel extends JPanel {
         validMoves = null;
         isWhiteTurn = true;
         boardModel.setupInitialPosition();
+        moveHistory.clear();
         repaint();
     }
 
     public boolean isWhiteTurn() {
         return isWhiteTurn;
     }
+
+    /**
+     * Set the shared move history (from GamePanel)
+     */
+    public void setMoveHistory(List<Move> history) {
+        this.moveHistory = history;
+    }
+
+    /**
+     * Set a listener to be notified when moves are made
+     */
+    public void setMoveListener(Consumer<Move> listener) {
+        this.moveListener = listener;
+    }
+
+    /**
+     * Get the board model
+     */
+    public Board getBoardModel() {
+        return boardModel;
+    }
+
+    /**
+     * Replay moves up to a specific index
+     * @param moveIndex The index of the move to replay to (-1 for initial position)
+     */
+    public void replayMovesToIndex(int moveIndex) {
+        // Reset the board to initial position
+        boardModel.setupInitialPosition();
+        isWhiteTurn = true;
+        selectedTile = null;
+        validMoves = null;
+
+        // Replay all moves up to the given index
+        for (int i = 0; i <= moveIndex && i < moveHistory.size(); i++) {
+            Move move = moveHistory.get(i);
+            boardModel.executeMove(move);
+            isWhiteTurn = !isWhiteTurn;
+        }
+
+        repaint();
+    }
 }
-// Last modified during: feat: Implement piece movement Strategy pattern through subclasses [strategy]
