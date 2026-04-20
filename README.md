@@ -1,0 +1,3 @@
+```bash
+mvn clean spring-boot:run -Dspring-boot.run.jvmArguments='-Djava.awt.headless=false'
+```
