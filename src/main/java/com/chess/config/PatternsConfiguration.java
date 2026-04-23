@@ -1,6 +1,5 @@
 package com.chess.config;
 
-import com.chess.model.pieces.factory.DecoratedPieceFactory;
 import com.chess.model.pieces.factory.PieceFactory;
 import com.chess.model.pieces.factory.StandardPieceFactory;
 import org.springframework.context.annotation.Bean;
@@ -22,29 +21,20 @@ public class PatternsConfiguration {
      * Provides the standard piece factory (creates basic pieces without decorators)
      */
     @Bean(name = "standardFactory")
+    @Primary
     public PieceFactory standardPieceFactory() {
         return new StandardPieceFactory();
     }
 
     /**
-     * Provides the decorated piece factory (creates pieces with special move decorators)
-     * This is marked as @Primary, so it's used by default in autowiring
-     */
-    @Bean(name = "decoratedFactory")
-    @Primary
-    public PieceFactory decoratedPieceFactory() {
-        return new DecoratedPieceFactory();
-    }
-
-    /**
-     * Default bean - uses the enhanced decorated factory
+     * Default bean
      * Classes can inject PieceFactory directly:
      *     @Autowired
-     *     private PieceFactory pieceFactory;  // Gets decoratedFactory
+     *     private PieceFactory pieceFactory;
      */
     @Bean
     public PieceFactory pieceFactory() {
-        return decoratedPieceFactory();
+        return standardPieceFactory();
     }
 }
 // Last modified during: feat: Add PieceFactory and SecurityProvider abstractions [DIP]

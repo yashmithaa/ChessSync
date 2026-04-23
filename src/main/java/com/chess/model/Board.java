@@ -1,6 +1,8 @@
 package com.chess.model;
 
 import com.chess.model.pieces.*;
+import com.chess.model.pieces.factory.PieceFactory;
+import com.chess.model.pieces.factory.StandardPieceFactory;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.List;
@@ -14,6 +16,7 @@ public class Board implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Piece[][] squares;
+    private Move lastMove;
 
     public Board() {
         squares = new Piece[8][8];
@@ -43,29 +46,30 @@ public class Board implements Serializable {
     private void setupPieces(PieceColor color) {
         int pawnRow = (color == PieceColor.WHITE) ? 6 : 1;
         int pieceRow = (color == PieceColor.WHITE) ? 7 : 0;
+        PieceFactory factory = new StandardPieceFactory();
 
         // Pawns
         for (int col = 0; col < 8; col++) {
-            squares[pawnRow][col] = new Pawn(color, pawnRow, col);
+            squares[pawnRow][col] = factory.createPiece(PieceType.PAWN, color, pawnRow, col);
         }
 
         // Rooks
-        squares[pieceRow][0] = new Rook(color, pieceRow, 0);
-        squares[pieceRow][7] = new Rook(color, pieceRow, 7);
+        squares[pieceRow][0] = factory.createPiece(PieceType.ROOK, color, pieceRow, 0);
+        squares[pieceRow][7] = factory.createPiece(PieceType.ROOK, color, pieceRow, 7);
 
         // Knights
-        squares[pieceRow][1] = new Knight(color, pieceRow, 1);
-        squares[pieceRow][6] = new Knight(color, pieceRow, 6);
+        squares[pieceRow][1] = factory.createPiece(PieceType.KNIGHT, color, pieceRow, 1);
+        squares[pieceRow][6] = factory.createPiece(PieceType.KNIGHT, color, pieceRow, 6);
 
         // Bishops
-        squares[pieceRow][2] = new Bishop(color, pieceRow, 2);
-        squares[pieceRow][5] = new Bishop(color, pieceRow, 5);
+        squares[pieceRow][2] = factory.createPiece(PieceType.BISHOP, color, pieceRow, 2);
+        squares[pieceRow][5] = factory.createPiece(PieceType.BISHOP, color, pieceRow, 5);
 
         // Queen
-        squares[pieceRow][3] = new Queen(color, pieceRow, 3);
+        squares[pieceRow][3] = factory.createPiece(PieceType.QUEEN, color, pieceRow, 3);
 
         // King
-        squares[pieceRow][4] = new King(color, pieceRow, 4);
+        squares[pieceRow][4] = factory.createPiece(PieceType.KING, color, pieceRow, 4);
     }
 
     public Piece getPiece(int row, int column) {
@@ -98,9 +102,24 @@ public class Board implements Serializable {
         if (move.isCastling()) {
             executeCastling(move);
         } else {
+            // Handle en passant capture
+            if (move.isEnPassant()) {
+                setPiece(move.getSourceRow(), move.getTargetColumn(), null);
+            }
+
             movePiece(move.getSourceRow(), move.getSourceColumn(),
                       move.getTargetRow(), move.getTargetColumn());
+
+            // Handle promotion
+            if (move.isPromotion()) {
+                PieceType promoType = move.getPromotionPieceType() != null ? move.getPromotionPieceType() : PieceType.QUEEN;
+                PieceFactory factory = new StandardPieceFactory();
+                Piece promotedPiece = factory.createPiece(promoType, move.getPiece().getColor(), move.getTargetRow(), move.getTargetColumn());
+                promotedPiece.setHasMoved(true);
+                setPiece(move.getTargetRow(), move.getTargetColumn(), promotedPiece);
+            }
         }
+        this.lastMove = move;
     }
 
     private void executeCastling(Move move) {
@@ -142,7 +161,7 @@ public class Board implements Serializable {
                 if (piece != null && piece.getColor() != playerColor) {
                     List<Move> moves = piece.getValidMoves(this);
                     for (Move move : moves) {
-                        if (move.getTargetRow() == kingRow && move.getToRow() == kingCol) {
+                        if (move.getTargetRow() == kingRow && move.getTargetColumn() == kingCol) {
                             return true; // King is under attack
                         }
                     }
@@ -208,6 +227,7 @@ public class Board implements Serializable {
                 }
             }
         }
+        clonedBoard.setLastMove(this.lastMove);
         return clonedBoard;
     }
     

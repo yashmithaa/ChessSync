@@ -15,20 +15,23 @@ public class Pawn extends Piece {
     public List<Move> getValidMoves(Board board) {
         List<Move> validMoves = new ArrayList<>();
         
-        // Direction: 1 for black (moving down), -1 for white (moving up)
         int direction = (getColor() == PieceColor.BLACK) ? 1 : -1;
+        int promotionRow = (getColor() == PieceColor.WHITE) ? 0 : 7;
         
         // One square forward
         int newRow = row + direction;
         if (isWithinBounds(newRow, column) && board.getPiece(newRow, column) == null) {
-            validMoves.add(new Move(this, row, column, newRow, column));
+            Move m1 = new Move(this, row, column, newRow, column);
+            if (newRow == promotionRow) {
+                m1.setPromotion(true);
+            }
+            validMoves.add(m1);
             
             // Two squares forward from starting position
             if (!hasMoved()) {
-                newRow = row + 2 * direction;
-                if (isWithinBounds(newRow, column) && board.getPiece(newRow, column) == null &&
-                    board.getPiece(row + direction, column) == null) {
-                    validMoves.add(new Move(this, row, column, newRow, column));
+                int doubleRow = row + 2 * direction;
+                if (isWithinBounds(doubleRow, column) && board.getPiece(doubleRow, column) == null) {
+                    validMoves.add(new Move(this, row, column, doubleRow, column));
                 }
             }
         }
@@ -41,11 +44,27 @@ public class Pawn extends Piece {
             if (isWithinBounds(newRow, newCol)) {
                 Piece targetPiece = board.getPiece(newRow, newCol);
                 if (targetPiece != null && targetPiece.getColor() != this.getColor()) {
-                    validMoves.add(new Move(this, row, column, newRow, newCol, targetPiece));
+                    Move m2 = new Move(this, row, column, newRow, newCol, targetPiece);
+                    if (newRow == promotionRow) {
+                        m2.setPromotion(true);
+                    }
+                    validMoves.add(m2);
                 }
                 
-                // En passant (would need game state to track previous moves)
-                // Simplified implementation for now
+                // En passant
+                if (targetPiece == null) {
+                    Move lastMove = board.getLastMove();
+                    if (lastMove != null && lastMove.getPiece().getType() == PieceType.PAWN && lastMove.getPiece().getColor() != this.getColor()) {
+                        // Check if the last move was a double step by an adjacent pawn
+                        if (Math.abs(lastMove.getSourceRow() - lastMove.getTargetRow()) == 2) {
+                            if (lastMove.getTargetColumn() == newCol && lastMove.getTargetRow() == row) {
+                                Move epMove = new Move(this, row, column, newRow, newCol, board.getPiece(row, newCol));
+                                epMove.setEnPassant(true);
+                                validMoves.add(epMove);
+                            }
+                        }
+                    }
+                }
             }
         }
         
@@ -54,7 +73,6 @@ public class Pawn extends Piece {
 
     @Override
     public boolean isValidMove(Board board, int targetRow, int targetColumn) {
-        // Direction: 1 for black (moving down), -1 for white (moving up)
         int direction = (getColor() == PieceColor.BLACK) ? 1 : -1;
         
         // Moving straight
@@ -78,7 +96,17 @@ public class Pawn extends Piece {
                 return true;
             }
             
-            // En passant logic would go here
+            // En passant
+            if (targetPiece == null) {
+                Move lastMove = board.getLastMove();
+                if (lastMove != null && lastMove.getPiece().getType() == PieceType.PAWN && lastMove.getPiece().getColor() != this.getColor()) {
+                    if (Math.abs(lastMove.getSourceRow() - lastMove.getTargetRow()) == 2) {
+                        if (lastMove.getTargetColumn() == targetColumn && lastMove.getTargetRow() == row) {
+                            return true;
+                        }
+                    }
+                }
+            }
         }
         
         return false;

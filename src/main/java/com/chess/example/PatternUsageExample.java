@@ -5,9 +5,6 @@ import com.chess.model.pieces.King;
 import com.chess.model.pieces.Pawn;
 import com.chess.model.pieces.PieceColor;
 import com.chess.model.pieces.PieceType;
-import com.chess.model.pieces.decorator.CastlingDecorator;
-import com.chess.model.pieces.decorator.PromotionDecorator;
-import com.chess.model.pieces.factory.DecoratedPieceFactory;
 import com.chess.model.pieces.factory.PieceFactory;
 import com.chess.model.pieces.factory.StandardPieceFactory;
 import com.chess.service.facade.GameFacade;
@@ -34,24 +31,7 @@ public class PatternUsageExample {
      */
     public static void decoratorPatternExample() {
         System.out.println("=== DECORATOR PATTERN EXAMPLE ===\n");
-
-        Board board = new Board();
-
-        // Create a basic king without special moves
-        King basicKing = new King(PieceColor.WHITE, 7, 4);
-        System.out.println("Basic King moves: " + basicKing.getValidMoves(board).size());
-
-        // Decorate the king with castling ability
-        CastlingDecorator castlingKing = new CastlingDecorator(basicKing);
-        System.out.println("King with castling: " + castlingKing.getValidMoves(board).size() + " moves");
-
-        // Further decorate with another decorator (composition is possible)
-        // This is the power of Decorator - flexible composition without inheritance
-
-        // Create a pawn with promotion ability
-        Pawn simplePawn = new Pawn(PieceColor.WHITE, 6, 0);
-        PromotionDecorator promotedPawn = new PromotionDecorator(simplePawn);
-        System.out.println("Pawn with promotion: " + promotedPawn.getValidMoves(board).size() + " moves\n");
+        System.out.println("Decorators have been removed to simplify the codebase.\n");
     }
 
     /**
@@ -67,21 +47,6 @@ public class PatternUsageExample {
         PieceFactory standardFactory = new StandardPieceFactory();
         var basicKing = standardFactory.createPiece(PieceType.KING, PieceColor.WHITE, 7, 4);
         System.out.println("Basic Factory - King moves: " + basicKing.getValidMoves(board).size());
-
-        // DecoratedPieceFactory - creates pieces with special move decorators
-        PieceFactory decoratedFactory = new DecoratedPieceFactory();
-        var enhancedKing = decoratedFactory.createPiece(PieceType.KING, PieceColor.WHITE, 7, 4);
-        System.out.println("Decorated Factory - King moves: " + enhancedKing.getValidMoves(board).size());
-
-        // Create a pawn from decorated factory (has promotion ability)
-        var promotedPawn = decoratedFactory.createPiece(PieceType.PAWN, PieceColor.WHITE, 6, 0);
-        System.out.println("Decorated Factory - Pawn moves: " + promotedPawn.getValidMoves(board).size() + "\n");
-
-        // KEY BENEFIT OF DIP:
-        // We can switch factories at runtime without changing Board or Piece code
-        // Can use dependency injection to choose factory based on configuration:
-        // @Autowired
-        // public Board(@Qualifier("decoratedFactory") PieceFactory factory) { ... }
     }
 
     /**

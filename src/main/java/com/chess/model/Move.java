@@ -1,6 +1,7 @@
 package com.chess.model;
 
 import com.chess.model.pieces.Piece;
+import com.chess.model.pieces.PieceType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -21,6 +22,7 @@ public class Move implements Serializable {
     private boolean isCastling;
     private boolean isEnPassant;
     private boolean isPromotion;
+    private PieceType promotionPieceType;
 
     public Move(Piece piece, int sourceRow, int sourceColumn, int targetRow, int targetColumn) {
         this.piece = piece;
